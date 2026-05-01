@@ -1,2 +1,4 @@
 Adafruit GFX Library
 Adafruit ILI9341
+Adafruit ST7789
+ArduinoJson
