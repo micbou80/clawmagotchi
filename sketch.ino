@@ -30,6 +30,10 @@
   Adafruit_ILI9341 tft(TFT_CS, TFT_DC);
 #endif
 
+#include "segments.h"
+#include "sprites.h"
+#include "scenarios.h"
+
 // ────────────────────────────────────────────
 //  RGB565 COLOR PALETTE
 // ────────────────────────────────────────────
@@ -82,9 +86,15 @@ unsigned long notifShowTime = 0;
 int currentNotif = 0;
 
 // ════════════════════════════════════════════
+//  SCENARIO STATE
+// ════════════════════════════════════════════
+Scenario currentScenario = SC_IDLE;
+
+// ════════════════════════════════════════════
 //  LOBSTER STATE MACHINE
 // ════════════════════════════════════════════
 enum LState { SIT, GO_R, GO_L, LOOK };
+#define _LMOOD_DEFINED
 enum LMood  { IDLE, HAPPY, ALERT, URGENT };
 
 struct {
@@ -136,9 +146,10 @@ void setup() {
   // Clock (start at 12:00:00 — will be replaced by NTP)
   tBase = millis();
   simSec = 12L * 3600;
-  renderTime(12, 0, true);
-  renderSec(0);
-  renderDate();
+  seg7_init();
+  seg7_renderTime(12, 0, true);
+  seg7_renderSec(0);
+  seg7_renderDate("Thu, May 1");
 
   // Version label
   tft.setTextSize(1);
@@ -248,20 +259,29 @@ void tickClock(unsigned long now) {
   colonVis = !colonVis;
 
   if (h != prevH || m != prevM) {
-    renderTime(h, m, colonVis);
+    seg7_renderTime(h, m, colonVis);
     prevH = h;
     prevM = m;
   } else {
-    renderColon(colonVis);
+    seg7_renderTime(prevH, prevM, colonVis);
   }
 
   if (s != prevS) {
-    renderSec(s);
+    seg7_renderSec(s);
     prevS = s;
 
     // Update date from NTP once per minute
     #ifdef PLATFORM_WAVESHARE
-    if (s == 0 && timeFromNTP) renderDateNTP();
+    if (s == 0 && timeFromNTP) {
+      struct tm ti;
+      if (getLocalTime(&ti, 100)) {
+        const char* days[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+        const char* mons[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+        char buf[20];
+        snprintf(buf, sizeof(buf), "%s, %s %d", days[ti.tm_wday], mons[ti.tm_mon], ti.tm_mday);
+        seg7_renderDate(buf);
+      }
+    }
     #endif
   }
 }
@@ -682,7 +702,17 @@ void showNotification(int idx) {
   showingNotif = true;
   notifShowTime = millis();
 
-  // Notification card area (middle of screen)
+  // Map notification type to scenario
+  if (strcmp(n.type, "email") == 0)         currentScenario = SC_EMAIL;
+  else if (strcmp(n.type, "teams") == 0)    currentScenario = SC_TEAMS_MSG;
+  else if (strcmp(n.type, "calendar") == 0) currentScenario = SC_MEETING_SOON;
+  else if (strcmp(n.type, "urgent") == 0)   currentScenario = SC_LATE;
+  else                                      currentScenario = SC_NEEDS_INPUT;
+
+  // Render scenario card (icon badge + short message)
+  renderScenarioCard(currentScenario);
+
+  // Notification card area (below scenario card, for detail text)
   int cardY = CLOCK_Y + (CLOCK_SIZE * 8) + 20;
   int cardH = 70;
 
@@ -761,6 +791,10 @@ void dismissNotification() {
   // Clear notification card area
   int cardY = CLOCK_Y + (CLOCK_SIZE * 8) + 20;
   tft.fillRect(0, cardY, SW, 80, C_BG);
+
+  // Clear scenario card
+  clearScenarioCard();
+  currentScenario = SC_IDLE;
 
   // Restore status
   drawStatus(wifiConnected ? "online" : "offline", wifiConnected ? C_STATUS : C_GRAY);
