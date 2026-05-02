@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawMagotchi v0.3 — Sprite Composition Preview</title>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+    const theme = param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef;
+  --cp-bg-elevated: #fcfbf8;
+  --cp-surface: #ffffff;
+  --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede;
+  --cp-border-strong: #919191;
+  --cp-text: #242424;
+  --cp-text-muted: #5c5c5c;
+  --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b;
+  --cp-accent-hover: #9a1a41;
+  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a;
+  --cp-danger: #dc2626;
+  --cp-warning: #f59e0b;
+  --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86);
+  --cp-panel-strong: rgba(255, 255, 255, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a;
+  --cp-bg-elevated: #343231;
+  --cp-surface: #292929;
+  --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747;
+  --cp-border-strong: #5f5f5f;
+  --cp-text: #dedede;
+  --cp-text-muted: #919191;
+  --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1;
+  --cp-accent-hover: #fb7b91;
+  --cp-accent-soft: rgba(253, 142, 161, 0.14);
+  --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80;
+  --cp-danger: #f87171;
+  --cp-warning: #fbbf24;
+  --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72);
+  --cp-panel-strong: rgba(41, 41, 41, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--cp-bg);
+  color: var(--cp-text);
+  font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+  padding: 24px;
+}
+h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+.subtitle { color: var(--cp-text-muted); font-size: 0.875rem; margin-bottom: 20px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+  text-align: center;
+}
+.card canvas {
+  display: block;
+  margin: 0 auto 8px;
+  border-radius: 10px;
+  image-rendering: pixelated;
+}
+.card .label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cp-text);
+  margin-bottom: 2px;
+}
+.card .desc {
+  font-size: 0.7rem;
+  color: var(--cp-text-muted);
+}
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 24px 0 12px;
+  color: var(--cp-accent);
+}
+.stats {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;
+}
+.stat {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  padding: 12px 20px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+}
+.stat .val { font-size: 1.5rem; font-weight: 700; color: var(--cp-accent); }
+.stat .lbl { font-size: 0.75rem; color: var(--cp-text-muted); }
+.controls {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.controls button {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--cp-text);
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.controls button:hover { border-color: var(--cp-accent); color: var(--cp-accent); }
+.controls button.active { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
+.live-card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+  max-width: 300px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.live-card canvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
+  image-rendering: pixelated;
+}
+</style>
+</head>
+<body>
+
+<h1>🦞 ClawMagotchi v0.3 — Sprite Composition System</h1>
+<p class="subtitle">100% procedural rendering • Zero bitmap memory • ESP32-compatible</p>
+
+<div class="stats">
+  <div class="stat"><div class="val">0 KB</div><div class="lbl">Sprite RAM</div></div>
+  <div class="stat"><div class="val">23</div><div class="lbl">Scenarios</div></div>
+  <div class="stat"><div class="val">5</div><div class="lbl">Expressions</div></div>
+  <div class="stat"><div class="val">14</div><div class="lbl">Large Icons</div></div>
+  <div class="stat"><div class="val">4</div><div class="lbl">Claw Poses</div></div>
+</div>
+
+<div class="section-title">🎮 Live Preview — Simulated 240×320 ILI9341 Display</div>
+<div class="controls" id="scenarioButtons"></div>
+<div class="live-card">
+  <canvas id="liveDisplay" width="240" height="320"></canvas>
+</div>
+
+<div class="section-title">🦞 Lobster Expressions</div>
+<div class="grid" id="expressionGrid"></div>
+
+<div class="section-title">🎨 Large Notification Icons</div>
+<div class="grid" id="iconGrid"></div>
+
+<div class="section-title">🔔 Scenario Cards (Lobster + Icon + Message)</div>
+<div class="grid" id="scenarioGrid"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  RGB565 → CSS color conversion + drawing helpers
+// ══════════════════════════════════════════════
+const BG_COLOR = '#1A2636';
+
+const COLORS = {
+  LB_RED:    '#E63946', LB_DRED:   '#C1121F', LB_LRED:   '#F07167',
+  LB_GOLD:   '#FFD166', LB_DGOLD:  '#D4A843', LB_CYAN:   '#00FFFF',
+  LB_DCYAN:  '#00B4B4', LB_WHITE:  '#FFFFFF', LB_BLACK:  '#000000',
+  LB_BG:     BG_COLOR,
+  IC_RED:    '#E63946', IC_DRED:   '#C1121F', IC_GOLD:   '#FFD166',
+  IC_WARN:   '#FF8800', IC_BLUE:   '#2E86C1', IC_DBLUE:  '#1A5276',
+  IC_CYAN:   '#00FFFF', IC_GREEN:  '#00FF00', IC_DGREEN: '#00AA00',
+  IC_PURPLE: '#9B59B6', IC_WHITE:  '#FFFFFF', IC_BLACK:  '#000000',
+  IC_GRAY:   '#7B7B7B', IC_LGRAY:  '#AAAAAA', IC_YELLOW: '#FFFF00',
+};
+
+class GFX {
+  constructor(canvas, scale = 1) {
+    this.ctx = canvas.getContext('2d');
+    this.s = scale;
+  }
+  fillCircle(cx, cy, r, color) {
+    const c = this.ctx; const s = this.s;
+    c.fillStyle = color;
+    c.beginPath(); c.arc(cx*s, cy*s, r*s, 0, Math.PI*2); c.fill();
+  }
+  fillRect(x, y, w, h, color) {
+    this.ctx.fillStyle = color;
+    this.ctx.fillRect(x*this.s, y*this.s, w*this.s, h*this.s);
+  }
+  fillRoundRect(x, y, w, h, r, color) {
+    const c = this.ctx; const s = this.s;
+    c.fillStyle = color;
+    c.beginPath();
+    c.roundRect(x*s, y*s, w*s, h*s, r*s);
+    c.fill();
+  }
+  fillTriangle(x1,y1,x2,y2,x3,y3,color) {
+    const c = this.ctx; const s = this.s;
+    c.fillStyle = color;
+    c.beginPath(); c.moveTo(x1*s,y1*s); c.lineTo(x2*s,y2*s); c.lineTo(x3*s,y3*s); c.closePath(); c.fill();
+  }
+  drawLine(x1,y1,x2,y2,color,width=1) {
+    const c = this.ctx; const s = this.s;
+    c.strokeStyle = color; c.lineWidth = width * s;
+    c.beginPath(); c.moveTo(x1*s,y1*s); c.lineTo(x2*s,y2*s); c.stroke();
+  }
+  drawCircleHelper(cx,cy,r,corner,color) {
+    const c = this.ctx; const s = this.s;
+    c.strokeStyle = color; c.lineWidth = s;
+    c.beginPath();
+    if (corner & 0x01) c.arc(cx*s,cy*s,r*s, Math.PI, Math.PI*1.5);
+    if (corner & 0x02) c.arc(cx*s,cy*s,r*s, Math.PI*1.5, Math.PI*2);
+    if (corner & 0x04) c.arc(cx*s,cy*s,r*s, 0, Math.PI*0.5);
+    if (corner & 0x08) c.arc(cx*s,cy*s,r*s, Math.PI*0.5, Math.PI);
+    c.stroke();
+  }
+  text(x, y, str, color, size=12) {
+    const c = this.ctx; const s = this.s;
+    c.fillStyle = color;
+    c.font = `bold ${size*s}px Consolas, monospace`;
+    c.fillText(str, x*s, y*s + size*s);
+  }
+  clear(color) {
+    this.ctx.fillStyle = color;
+    this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  LOBSTER RENDERER (direct port from lobster_gfx.h)
+// ══════════════════════════════════════════════
+function drawClaw(g, cx, cy, side, openAmt, f) {
+  g.fillCircle(cx, cy - 4 - openAmt, 6, COLORS.LB_GOLD);
+  g.fillCircle(cx + side * 4, cy - 4 - openAmt, 4, COLORS.LB_GOLD);
+  g.fillCircle(cx, cy + 4 + openAmt, 6, COLORS.LB_GOLD);
+  g.fillCircle(cx + side * 4, cy + 4 + openAmt, 4, COLORS.LB_GOLD);
+  g.fillCircle(cx + side * 7, cy - 4 - openAmt, 2, COLORS.LB_DGOLD);
+  g.fillCircle(cx + side * 7, cy + 4 + openAmt, 2, COLORS.LB_DGOLD);
+  g.fillCircle(cx - side * 4, cy, 4, COLORS.LB_RED);
+}
+
+function drawClawTucked(g, cx, cy, side) {
+  g.fillCircle(cx, cy, 4, COLORS.LB_GOLD);
+  g.fillCircle(cx + side * 3, cy - 1, 3, COLORS.LB_GOLD);
+  g.fillCircle(cx + side * 3, cy + 1, 3, COLORS.LB_GOLD);
+}
+
+function drawLobster(g, cx, cy, expr='normal', clawPose='idle', frame=0, dir=1) {
+  const f = frame;
+  const d = dir;
+
+  // BODY
+  g.fillCircle(cx, cy, 20, COLORS.LB_RED);
+  g.fillCircle(cx - 6, cy, 18, COLORS.LB_RED);
+  g.fillCircle(cx + 6, cy, 18, COLORS.LB_RED);
+  g.fillCircle(cx, cy - 4, 14, COLORS.LB_LRED);
+  g.fillRect(cx - 18, cy + 2, 36, 16, COLORS.LB_RED);
+  g.fillCircle(cx - 10, cy + 12, 8, COLORS.LB_RED);
+  g.fillCircle(cx + 10, cy + 12, 8, COLORS.LB_RED);
+  g.fillCircle(cx, cy + 14, 12, COLORS.LB_DRED);
+
+  // EYES
+  const eyeSpacing = 10;
+  let eyeY = cy - 10;
+  const eyeLX = cx - eyeSpacing;
+  const eyeRX = cx + eyeSpacing;
+  const eyeR = 7;
+
+  if (expr === 'normal') {
+    g.fillCircle(eyeLX, eyeY, eyeR + 1, COLORS.LB_DCYAN);
+    g.fillCircle(eyeRX, eyeY, eyeR + 1, COLORS.LB_DCYAN);
+    g.fillCircle(eyeLX, eyeY, eyeR, COLORS.LB_CYAN);
+    g.fillCircle(eyeRX, eyeY, eyeR, COLORS.LB_CYAN);
+    g.fillCircle(eyeLX + d * 2, eyeY, 3, COLORS.LB_BLACK);
+    g.fillCircle(eyeRX + d * 2, eyeY, 3, COLORS.LB_BLACK);
+    g.fillCircle(eyeLX - 2, eyeY - 3, 2, COLORS.LB_WHITE);
+    g.fillCircle(eyeRX - 2, eyeY - 3, 2, COLORS.LB_WHITE);
+  } else if (expr === 'happy') {
+    g.fillCircle(eyeLX, eyeY, eyeR, COLORS.LB_CYAN);
+    g.fillCircle(eyeRX, eyeY, eyeR, COLORS.LB_CYAN);
+    g.fillRect(eyeLX - eyeR, eyeY, eyeR * 2, eyeR + 2, COLORS.LB_RED);
+    g.fillRect(eyeRX - eyeR, eyeY, eyeR * 2, eyeR + 2, COLORS.LB_RED);
+    g.drawCircleHelper(eyeLX, eyeY + 1, eyeR - 1, 0x03, COLORS.LB_DCYAN);
+    g.drawCircleHelper(eyeRX, eyeY + 1, eyeR - 1, 0x03, COLORS.LB_DCYAN);
+  } else if (expr === 'alert') {
+    eyeY -= 2;
+    g.fillCircle(eyeLX, eyeY, eyeR + 2, COLORS.LB_DCYAN);
+    g.fillCircle(eyeRX, eyeY, eyeR + 2, COLORS.LB_DCYAN);
+    g.fillCircle(eyeLX, eyeY, eyeR + 1, COLORS.LB_CYAN);
+    g.fillCircle(eyeRX, eyeY, eyeR + 1, COLORS.LB_CYAN);
+    g.fillCircle(eyeLX + d, eyeY, 2, COLORS.LB_BLACK);
+    g.fillCircle(eyeRX + d, eyeY, 2, COLORS.LB_BLACK);
+    g.fillCircle(eyeLX - 2, eyeY - 3, 2, COLORS.LB_WHITE);
+    g.fillCircle(eyeRX - 2, eyeY - 3, 2, COLORS.LB_WHITE);
+  } else if (expr === 'sleepy') {
+    g.fillCircle(eyeLX, eyeY + 2, eyeR, COLORS.LB_DCYAN);
+    g.fillCircle(eyeRX, eyeY + 2, eyeR, COLORS.LB_DCYAN);
+    g.fillRect(eyeLX - eyeR - 1, eyeY - eyeR, eyeR * 2 + 2, eyeR + 4, COLORS.LB_RED);
+    g.fillRect(eyeRX - eyeR - 1, eyeY - eyeR, eyeR * 2 + 2, eyeR + 4, COLORS.LB_RED);
+  } else if (expr === 'dizzy') {
+    const dOff = (f % 8) - 4;
+    g.fillCircle(eyeLX + dOff, eyeY, eyeR, COLORS.LB_CYAN);
+    g.fillCircle(eyeRX - dOff, eyeY, eyeR, COLORS.LB_CYAN);
+    g.drawLine(eyeLX - 3, eyeY - 3, eyeLX + 3, eyeY + 3, COLORS.LB_BLACK, 2);
+    g.drawLine(eyeLX + 3, eyeY - 3, eyeLX - 3, eyeY + 3, COLORS.LB_BLACK, 2);
+    g.drawLine(eyeRX - 3, eyeY - 3, eyeRX + 3, eyeY + 3, COLORS.LB_BLACK, 2);
+    g.drawLine(eyeRX + 3, eyeY - 3, eyeRX - 3, eyeY + 3, COLORS.LB_BLACK, 2);
+  }
+
+  // ANTENNAE
+  const aW1 = ((f / 3 | 0) % 6) - 3;
+  const aW2 = ((f / 4 | 0) % 5) - 2;
+  const a1BX = cx - 6, a1BY = cy - 18;
+  const a1TX = cx - 14 + aW1, a1TY = cy - 38 + Math.abs(aW2);
+  const a2BX = cx + 6, a2BY = cy - 18;
+  const a2TX = cx + 14 + aW2, a2TY = cy - 36 + Math.abs(aW1);
+  g.drawLine(a1BX, a1BY, a1TX, a1TY, COLORS.LB_RED, 2);
+  g.drawLine(a2BX, a2BY, a2TX, a2TY, COLORS.LB_RED, 2);
+  g.fillCircle(a1TX, a1TY, 3, COLORS.LB_GOLD);
+  g.fillCircle(a2TX, a2TY, 3, COLORS.LB_GOLD);
+
+  // CLAWS
+  const clawY = cy - 2;
+  if (clawPose === 'idle') {
+    const co = (f % 30 < 15) ? 2 : 0;
+    drawClaw(g, cx - 30, clawY, -1, co, f);
+    drawClaw(g, cx + 30, clawY, 1, co, f);
+  } else if (clawPose === 'raised') {
+    const co = (f % 10 < 5) ? 4 : 1;
+    drawClaw(g, cx - 28, clawY - 10, -1, co, f);
+    drawClaw(g, cx + 28, clawY - 10, 1, co, f);
+  } else if (clawPose === 'holding') {
+    const co = (f % 30 < 15) ? 2 : 0;
+    drawClaw(g, cx - 30, clawY, -1, co, f);
+    // Right claw closed (holding)
+    g.fillCircle(cx + 28, clawY - 6, 6, COLORS.LB_GOLD);
+    g.fillCircle(cx + 32, clawY - 6, 4, COLORS.LB_GOLD);
+    g.fillCircle(cx + 28, clawY - 2, 6, COLORS.LB_GOLD);
+    g.fillCircle(cx + 32, clawY - 2, 4, COLORS.LB_GOLD);
+    g.fillCircle(cx + 24, clawY - 4, 4, COLORS.LB_RED);
+  } else if (clawPose === 'tucked') {
+    drawClawTucked(g, cx - 18, clawY + 4, -1);
+    drawClawTucked(g, cx + 18, clawY + 4, 1);
+  }
+
+  // ARMS
+  g.fillRect(cx - 24, cy - 4, 6, 6, COLORS.LB_RED);
+  g.fillRect(cx + 18, cy - 4, 6, 6, COLORS.LB_RED);
+
+  // LEGS
+  for (let i = 0; i < 3; i++) {
+    const lx = cx - 8 + i * 8;
+    const anim = ((f / 4 | 0) + i) % 3;
+    const legLen = 8 + anim * 2;
+    g.drawLine(lx, cy + 16, lx - 4 - anim, cy + 16 + legLen, COLORS.LB_DRED, 1.5);
+    const rx = cx + 8 - i * 8;
+    g.drawLine(rx, cy + 16, rx + 4 + anim, cy + 16 + legLen, COLORS.LB_DRED, 1.5);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  ICON RENDERERS (port from icons_large.h)
+// ══════════════════════════════════════════════
+const ICONS = {
+  warning: (g, cx, cy) => {
+    const h = 40, w = 46;
+    g.fillTriangle(cx, cy - h/2, cx - w/2, cy + h/2, cx + w/2, cy + h/2, COLORS.IC_RED);
+    g.fillTriangle(cx, cy - h/2 + 4, cx - w/2 + 5, cy + h/2 - 2, cx + w/2 - 5, cy + h/2 - 2, COLORS.IC_DRED);
+    g.fillRect(cx - 2, cy - 10, 5, 16, COLORS.IC_BLACK);
+    g.fillCircle(cx, cy + 12, 3, COLORS.IC_BLACK);
+    g.drawLine(cx - w/2 - 6, cy - 2, cx - w/2 - 14, cy - 6, COLORS.IC_YELLOW, 2);
+    g.drawLine(cx + w/2 + 6, cy - 2, cx + w/2 + 14, cy - 6, COLORS.IC_YELLOW, 2);
+  },
+  envelope: (g, cx, cy) => {
+    const w = 44, h = 30, x0 = cx - w/2, y0 = cy - h/2;
+    g.fillRoundRect(x0, y0, w, h, 3, COLORS.IC_BLUE);
+    g.fillRect(x0 + 2, cy, w - 4, h/2 - 2, COLORS.IC_DBLUE);
+    g.fillTriangle(x0 + 2, y0 + 2, cx, cy + 2, x0 + w - 2, y0 + 2, COLORS.IC_WHITE);
+    g.drawLine(x0 + 2, y0 + 2, cx, cy + 2, COLORS.IC_DBLUE, 1.5);
+    g.drawLine(cx, cy + 2, x0 + w - 2, y0 + 2, COLORS.IC_DBLUE, 1.5);
+  },
+  chat: (g, cx, cy) => {
+    const w = 44, h = 28, x0 = cx - w/2, y0 = cy - h/2 - 4;
+    g.fillRoundRect(x0, y0, w, h, 6, COLORS.IC_PURPLE);
+    g.fillTriangle(cx - 8, y0 + h - 1, cx - 2, y0 + h - 1, cx - 12, y0 + h + 10, COLORS.IC_PURPLE);
+    const dotY = y0 + h/2;
+    g.fillCircle(cx - 10, dotY, 3, COLORS.IC_WHITE);
+    g.fillCircle(cx, dotY, 3, COLORS.IC_WHITE);
+    g.fillCircle(cx + 10, dotY, 3, COLORS.IC_WHITE);
+  },
+  clock: (g, cx, cy) => {
+    const r = 22;
+    g.fillCircle(cx, cy, r, COLORS.IC_BLUE);
+    g.fillCircle(cx, cy, r - 3, COLORS.IC_DBLUE);
+    g.fillCircle(cx, cy, r - 4, COLORS.IC_WHITE);
+    for (let i = 0; i < 12; i++) {
+      const angle = i * 30 * Math.PI / 180;
+      g.fillCircle(cx + (r-7)*Math.sin(angle), cy - (r-7)*Math.cos(angle), 1, COLORS.IC_GRAY);
+    }
+    g.drawLine(cx, cy, cx - 8, cy - 10, COLORS.IC_BLACK, 2);
+    g.drawLine(cx, cy, cx + 10, cy - 12, COLORS.IC_DBLUE, 1.5);
+    g.fillCircle(cx, cy, 2, COLORS.IC_RED);
+  },
+  check: (g, cx, cy) => {
+    g.fillCircle(cx, cy, 20, COLORS.IC_GREEN);
+    g.fillCircle(cx, cy, 17, COLORS.IC_DGREEN);
+    for (let t = -1; t <= 1; t++) {
+      g.drawLine(cx - 10, cy + t, cx - 3, cy + 8 + t, COLORS.IC_WHITE, 2);
+      g.drawLine(cx - 3, cy + 8 + t, cx + 10, cy - 6 + t, COLORS.IC_WHITE, 2);
+    }
+  },
+  question: (g, cx, cy) => {
+    g.fillCircle(cx, cy, 20, COLORS.IC_GOLD);
+    g.drawCircleHelper(cx + 2, cy - 6, 8, 0x03, COLORS.IC_BLACK);
+    g.drawCircleHelper(cx + 2, cy - 6, 7, 0x03, COLORS.IC_BLACK);
+    g.fillRect(cx - 1, cy - 2, 4, 8, COLORS.IC_BLACK);
+    g.fillCircle(cx, cy + 10, 2, COLORS.IC_BLACK);
+  },
+  shield: (g, cx, cy) => {
+    g.fillRoundRect(cx - 16, cy - 18, 32, 24, 4, COLORS.IC_GREEN);
+    g.fillTriangle(cx - 16, cy + 4, cx + 16, cy + 4, cx, cy + 20, COLORS.IC_GREEN);
+    g.fillRoundRect(cx - 12, cy - 14, 24, 18, 3, COLORS.IC_DGREEN);
+    g.fillTriangle(cx - 12, cy + 2, cx + 12, cy + 2, cx, cy + 16, COLORS.IC_DGREEN);
+    for (let t = 0; t <= 1; t++) {
+      g.drawLine(cx - 6, cy - 2 + t, cx - 2, cy + 4 + t, COLORS.IC_WHITE, 2);
+      g.drawLine(cx - 2, cy + 4 + t, cx + 6, cy - 6 + t, COLORS.IC_WHITE, 2);
+    }
+  },
+  droplet: (g, cx, cy) => {
+    g.fillTriangle(cx, cy - 18, cx - 12, cy, cx + 12, cy, COLORS.IC_CYAN);
+    g.fillCircle(cx, cy + 2, 12, COLORS.IC_CYAN);
+    g.fillCircle(cx - 3, cy - 4, 3, COLORS.IC_WHITE);
+  },
+  sunrise: (g, cx, cy) => {
+    g.fillCircle(cx, cy + 6, 14, COLORS.IC_GOLD);
+    g.fillRect(cx - 24, cy + 6, 48, 16, COLORS.IC_WARN);
+    for (let i = 0; i < 5; i++) {
+      const a = (30 + i * 30) * Math.PI / 180;
+      g.drawLine(cx, cy + 4, cx + 22*Math.cos(a), cy + 4 - 22*Math.sin(a), COLORS.IC_YELLOW, 2);
+    }
+  },
+  moon: (g, cx, cy) => {
+    g.fillCircle(cx, cy, 16, COLORS.IC_GOLD);
+    g.fillCircle(cx + 8, cy - 4, 14, BG_COLOR);
+  },
+  gear: (g, cx, cy) => {
+    const r = 16;
+    g.fillCircle(cx, cy, r, COLORS.IC_GRAY);
+    for (let i = 0; i < 8; i++) {
+      const a = i * 45 * Math.PI / 180;
+      g.fillRect(cx + r*Math.sin(a) - 3, cy - r*Math.cos(a) - 3, 6, 6, COLORS.IC_GRAY);
+    }
+    g.fillCircle(cx, cy, r - 5, COLORS.IC_LGRAY);
+    g.fillCircle(cx, cy, 4, COLORS.IC_BLACK);
+  },
+  star: (g, cx, cy) => {
+    g.fillTriangle(cx, cy - 18, cx - 6, cy - 4, cx + 6, cy - 4, COLORS.IC_GOLD);
+    g.fillTriangle(cx - 18, cy - 4, cx - 4, cy - 4, cx - 8, cy + 8, COLORS.IC_GOLD);
+    g.fillTriangle(cx + 18, cy - 4, cx + 4, cy - 4, cx + 8, cy + 8, COLORS.IC_GOLD);
+    g.fillTriangle(cx - 12, cy + 16, cx, cy + 4, cx - 14, cy + 2, COLORS.IC_GOLD);
+    g.fillTriangle(cx + 12, cy + 16, cx, cy + 4, cx + 14, cy + 2, COLORS.IC_GOLD);
+    g.fillCircle(cx, cy, 6, COLORS.IC_GOLD);
+  },
+  runner: (g, cx, cy) => {
+    g.fillCircle(cx + 4, cy - 14, 5, COLORS.IC_WARN);
+    g.drawLine(cx, cy - 8, cx - 2, cy + 4, COLORS.IC_WARN, 2);
+    g.drawLine(cx - 1, cy - 5, cx + 10, cy - 10, COLORS.IC_WARN, 2);
+    g.drawLine(cx - 1, cy - 5, cx - 10, cy, COLORS.IC_WARN, 2);
+    g.drawLine(cx - 2, cy + 4, cx - 10, cy + 16, COLORS.IC_WARN, 2);
+    g.drawLine(cx - 2, cy + 4, cx + 8, cy + 16, COLORS.IC_WARN, 2);
+  },
+  eye: (g, cx, cy) => {
+    g.fillCircle(cx, cy, 14, COLORS.IC_WHITE);
+    g.fillCircle(cx - 16, cy, 6, COLORS.IC_WHITE);
+    g.fillCircle(cx + 16, cy, 6, COLORS.IC_WHITE);
+    g.fillCircle(cx, cy, 8, COLORS.IC_CYAN);
+    g.fillCircle(cx, cy, 4, COLORS.IC_BLACK);
+    g.fillCircle(cx - 2, cy - 3, 2, COLORS.IC_WHITE);
+  },
+  scales: (g, cx, cy) => {
+    g.fillRect(cx - 1, cy - 16, 3, 32, COLORS.IC_GOLD);
+    g.fillRect(cx - 20, cy - 14, 40, 3, COLORS.IC_GOLD);
+    g.drawLine(cx - 20, cy - 14, cx - 16, cy + 2, COLORS.IC_GOLD, 1.5);
+    g.drawLine(cx - 20, cy - 14, cx - 24, cy + 2, COLORS.IC_GOLD, 1.5);
+    g.fillRect(cx - 26, cy + 2, 14, 3, COLORS.IC_GOLD);
+    g.drawLine(cx + 20, cy - 14, cx + 16, cy + 2, COLORS.IC_GOLD, 1.5);
+    g.drawLine(cx + 20, cy - 14, cx + 24, cy + 2, COLORS.IC_GOLD, 1.5);
+    g.fillRect(cx + 14, cy + 2, 14, 3, COLORS.IC_GOLD);
+    g.fillRect(cx - 8, cy + 14, 16, 3, COLORS.IC_GOLD);
+  },
+  reply: (g, cx, cy) => {
+    g.drawCircleHelper(cx + 4, cy - 2, 14, 0x06, COLORS.IC_BLUE);
+    g.drawCircleHelper(cx + 4, cy - 2, 13, 0x06, COLORS.IC_BLUE);
+    g.drawCircleHelper(cx + 4, cy - 2, 12, 0x06, COLORS.IC_BLUE);
+    g.fillTriangle(cx - 14, cy - 2, cx - 6, cy - 10, cx - 6, cy + 6, COLORS.IC_BLUE);
+  },
+};
+
+// ══════════════════════════════════════════════
+//  SCENARIOS TABLE (port from scenarios_v2.h)
+// ══════════════════════════════════════════════
+const SCENARIOS = [
+  { name: 'S2_IDLE',           msg: null,       icon: null,      expr: 'normal', claw: 'idle',    accent: '#7B7B7B' },
+  { name: 'S2_FOCUS',          msg: 'Focus',    icon: 'shield',  expr: 'sleepy', claw: 'tucked',  accent: '#00FF00' },
+  { name: 'S2_CONTEXT_SWITCH', msg: 'Too fast', icon: 'warning', expr: 'dizzy',  claw: 'raised',  accent: '#FF8800' },
+  { name: 'S2_TASK_NUDGE',     msg: 'This?',    icon: 'question',expr: 'normal', claw: 'holding', accent: '#FFD166' },
+  { name: 'S2_LONG_SESSION',   msg: 'Break?',   icon: 'clock',   expr: 'alert',  claw: 'idle',    accent: '#FF8800' },
+  { name: 'S2_MEETING_SOON',   msg: '5 min',    icon: 'clock',   expr: 'alert',  claw: 'raised',  accent: '#2E86C1' },
+  { name: 'S2_LATE',           msg: 'Late!',    icon: 'warning', expr: 'alert',  claw: 'raised',  accent: '#E63946' },
+  { name: 'S2_EMAIL',          msg: 'Mail!',    icon: 'envelope',expr: 'alert',  claw: 'holding', accent: '#2E86C1' },
+  { name: 'S2_TEAMS_MSG',      msg: 'Ping!',    icon: 'chat',    expr: 'alert',  claw: 'holding', accent: '#9B59B6' },
+  { name: 'S2_WORTH_REPLY',    msg: 'Reply?',   icon: 'reply',   expr: 'normal', claw: 'holding', accent: '#2E86C1' },
+  { name: 'S2_QUIET_TOO_LONG', msg: 'Silent...', icon: 'eye',   expr: 'normal', claw: 'idle',    accent: '#7B7B7B' },
+  { name: 'S2_MOVE',           msg: 'Move',     icon: 'runner',  expr: 'alert',  claw: 'raised',  accent: '#FF8800' },
+  { name: 'S2_HYDRATE',        msg: 'Water',    icon: 'droplet', expr: 'normal', claw: 'holding', accent: '#00FFFF' },
+  { name: 'S2_MORNING',        msg: 'Top 1?',   icon: 'sunrise', expr: 'happy',  claw: 'raised',  accent: '#FFD166' },
+  { name: 'S2_SHUTDOWN',       msg: 'Done?',    icon: 'moon',    expr: 'sleepy', claw: 'tucked',  accent: '#7B7B7B' },
+  { name: 'S2_WORKING',        msg: 'Working',  icon: 'gear',    expr: 'normal', claw: 'holding', accent: '#7B7B7B' },
+  { name: 'S2_DONE',           msg: 'Done',     icon: 'check',   expr: 'happy',  claw: 'raised',  accent: '#00FF00' },
+  { name: 'S2_NEEDS_INPUT',    msg: 'You?',     icon: 'question',expr: 'alert',  claw: 'holding', accent: '#FFD166' },
+  { name: 'S2_STUCK',          msg: 'Stuck?',   icon: 'warning', expr: 'dizzy',  claw: 'idle',    accent: '#FF8800' },
+  { name: 'S2_DECISION',       msg: 'A / B',    icon: 'scales',  expr: 'normal', claw: 'holding', accent: '#FFD166' },
+  { name: 'S2_DOOMSCROLL',     msg: 'Hmm...',   icon: 'eye',     expr: 'sleepy', claw: 'idle',    accent: '#7B7B7B' },
+  { name: 'S2_CELEBRATION',    msg: 'Nice.',    icon: 'star',    expr: 'happy',  claw: 'raised',  accent: '#00FF00' },
+  { name: 'S2_IDLE_PERSONALITY',msg: null,       icon: null,      expr: 'happy',  claw: 'idle',    accent: '#7B7B7B' },
+];
+
+// ══════════════════════════════════════════════
+//  RENDER GRIDS
+// ══════════════════════════════════════════════
+
+// Expression grid
+const exprGrid = document.getElementById('expressionGrid');
+['normal','happy','alert','sleepy','dizzy'].forEach(expr => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const c = document.createElement('canvas');
+  c.width = 200; c.height = 160;
+  card.appendChild(c);
+  card.innerHTML += `<div class="label">EXPR_${expr.toUpperCase()}</div><div class="desc">${
+    {normal:'Cyan eyes with pupils + sparkle',happy:'Squint arcs — cheerful',alert:'Wide eyes, raised — surprised',sleepy:'Half-closed — drowsy/calm',dizzy:'X-eyes wobble — overwhelmed'}[expr]
+  }</div>`;
+  exprGrid.appendChild(card);
+  const g = new GFX(c, 2);
+  g.clear(BG_COLOR);
+  drawLobster(g, 50, 52, expr, 'idle', 8);
+});
+
+// Icon grid
+const iconGrid = document.getElementById('iconGrid');
+const iconNames = Object.keys(ICONS);
+const iconLabels = {
+  warning:'⚠️ Warning',envelope:'✉️ Envelope',chat:'💬 Chat',clock:'🕒 Clock',
+  check:'✅ Checkmark',question:'❓ Question',shield:'🛡️ Shield',droplet:'💧 Droplet',
+  sunrise:'🌅 Sunrise',moon:'🌙 Moon',gear:'⚙️ Gear',star:'🎉 Star',
+  runner:'🏃 Runner',eye:'👀 Eye',scales:'⚖️ Scales',reply:'↩️ Reply'
+};
+iconNames.forEach(name => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const c = document.createElement('canvas');
+  c.width = 140; c.height = 120;
+  card.appendChild(c);
+  card.innerHTML += `<div class="label">${iconLabels[name] || name}</div><div class="desc">~40-50px procedural</div>`;
+  iconGrid.appendChild(card);
+  const g = new GFX(c, 2);
+  g.clear(BG_COLOR);
+  ICONS[name](g, 35, 30);
+});
+
+// Scenario grid
+const scenarioGrid = document.getElementById('scenarioGrid');
+SCENARIOS.forEach((sc, i) => {
+  if (!sc.msg && !sc.icon) return; // skip plain idle
+  const card = document.createElement('div');
+  card.className = 'card';
+  const c = document.createElement('canvas');
+  c.width = 240; c.height = 200;
+  card.appendChild(c);
+  card.innerHTML += `<div class="label">${sc.name}</div><div class="desc">${sc.msg || '—'} • ${sc.expr} • ${sc.claw}</div>`;
+  scenarioGrid.appendChild(card);
+  const g = new GFX(c, 1);
+  g.clear(BG_COLOR);
+  // Draw icon at top center
+  if (sc.icon && ICONS[sc.icon]) ICONS[sc.icon](g, 120, 45);
+  // Draw message below icon
+  if (sc.msg) g.text(120 - sc.msg.length * 6, 72, sc.msg, sc.accent, 14);
+  // Draw lobster at bottom
+  drawLobster(g, 120, 140, sc.expr, sc.claw, 8);
+});
+
+// ══════════════════════════════════════════════
+//  LIVE DISPLAY — Animated full-screen simulation
+// ══════════════════════════════════════════════
+const liveCanvas = document.getElementById('liveDisplay');
+const liveG = new GFX(liveCanvas, 1);
+let currentScenario = 0;
+let animFrame = 0;
+
+// Create scenario buttons
+const btnContainer = document.getElementById('scenarioButtons');
+SCENARIOS.forEach((sc, i) => {
+  if (!sc.msg && i > 0) return;
+  const btn = document.createElement('button');
+  btn.textContent = sc.msg || 'Idle';
+  btn.onclick = () => {
+    currentScenario = i;
+    document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  };
+  if (i === 0) btn.classList.add('active');
+  btnContainer.appendChild(btn);
+});
+
+function drawClock(g, y0) {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2, '0');
+  const m = now.getMinutes().toString().padStart(2, '0');
+  g.text(48, y0, `${h}:${m}`, '#00FFFF', 32);
+}
+
+function renderLiveDisplay() {
+  animFrame++;
+  liveG.clear(BG_COLOR);
+
+  // Clock at top
+  drawClock(liveG, 15);
+
+  // Scenario notification in middle
+  const sc = SCENARIOS[currentScenario];
+  if (sc.icon && ICONS[sc.icon]) {
+    ICONS[sc.icon](liveG, 120, 110);
+  }
+  if (sc.msg) {
+    liveG.text(120 - sc.msg.length * 6, 140, sc.msg, sc.accent, 14);
+  }
+
+  // Lobster at bottom
+  const bobOffset = Math.sin(animFrame * 0.08) * 3;
+  const swayOffset = Math.sin(animFrame * 0.04) * 2;
+  // Apply bob/sway manually
+  drawLobster(liveG, 120 + swayOffset, 230 + bobOffset, sc.expr, sc.claw, animFrame, 1);
+
+  // Status bar at bottom
+  liveG.fillRect(0, 305, 240, 15, '#0D1B2A');
+  liveG.text(4, 304, '🦞 ClawMagotchi v0.3', '#555555', 9);
+
+  requestAnimationFrame(renderLiveDisplay);
+}
+renderLiveDisplay();
+</script>
+</body>
+</html>

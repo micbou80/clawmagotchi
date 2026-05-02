@@ -108,6 +108,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     "body": item.get("body", ""),
                     "time": item.get("time", datetime.now().strftime("%H:%M")),
                 }
+                # Pass through optional countdown field for meeting timers
+                if "countdown" in item:
+                    notif["countdown"] = int(item["countdown"])
                 notifications.append(notif)
                 added += 1
                 stats["total_pushed"] += 1

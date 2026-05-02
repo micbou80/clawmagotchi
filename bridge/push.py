@@ -21,17 +21,21 @@ from datetime import datetime
 BRIDGE_URL = "http://localhost:8222/api/notifications"
 
 
-def push_notification(ntype="info", title="", body="", time_str=None, bridge_url=BRIDGE_URL):
+def push_notification(ntype="info", title="", body="", time_str=None, bridge_url=BRIDGE_URL, countdown=None):
     """Push a single notification to the bridge. Returns True on success."""
     if time_str is None:
         time_str = datetime.now().strftime("%H:%M")
 
-    payload = json.dumps({
+    data = {
         "type": ntype,
         "title": title,
         "body": body,
         "time": time_str,
-    }).encode()
+    }
+    if countdown:
+        data["countdown"] = countdown
+
+    payload = json.dumps(data).encode()
 
     req = urllib.request.Request(
         bridge_url,
@@ -59,14 +63,15 @@ def is_bridge_running(bridge_url=BRIDGE_URL):
 
 def main():
     parser = argparse.ArgumentParser(description="Push notification to Red Device")
-    parser.add_argument("--type", default="info", choices=["email", "teams", "calendar", "urgent", "info"])
+    parser.add_argument("--type", default="info", choices=["email", "teams", "calendar", "urgent", "info", "working", "working_done"])
     parser.add_argument("--title", required=True)
     parser.add_argument("--body", default="")
     parser.add_argument("--time", default=None)
+    parser.add_argument("--countdown", type=int, default=None, help="Countdown seconds for meeting timer")
     parser.add_argument("--url", default=BRIDGE_URL)
     args = parser.parse_args()
 
-    ok = push_notification(args.type, args.title, args.body, args.time, args.url)
+    ok = push_notification(args.type, args.title, args.body, args.time, args.url, args.countdown)
     if ok:
         print(f"✅ Pushed [{args.type}] {args.title}")
     else:
