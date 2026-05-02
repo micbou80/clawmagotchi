@@ -2,7 +2,7 @@
 
 > A physical desk companion powered by ESP32 — an animated lobster that lives on a 1.47" screen, shows the time, and reacts to live notifications from your AI assistant.
 
-![First boot on real hardware](exampleImages/first-real-hardware-boot.png)
+
 
 ---
 
